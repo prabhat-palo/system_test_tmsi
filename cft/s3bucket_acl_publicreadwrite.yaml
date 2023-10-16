@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Source bucket for Lambda messages to Teams
+
+Parameters:
+  AssetId:
+    Description: AssetID for this stack
+    Type: String
+  ResourceOwner:
+    Description: Resource Owner
+    Type: String
+  Environment:
+    AllowedValues:
+      - PRODUCTION
+      - PRE-PRODUCTION
+      - INTEGRATION TESTING
+      - QUALITY ASSURANCE
+      - DEVELOPMENT
+      - LAB
+    Description: Environment Type
+    Type: String
+  BucketName:
+    Description: Lambda source bucket Name, including assetID prepend
+    Type: String
+  LambdaRoleName:
+    Description: Role name for Lambda using this bucket, including assetID prepend
+    Type: String
+
+Resources:
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      AccessControl: PublicReadWrite
+      Tags:
+        - Key: tr:application-asset-insight-id
+          Value: !Ref AssetId
+        - Key: tr:resource-owner
+          Value: !Ref ResourceOwner
+        - Key: tr:environment-type
+          Value: !Ref Environment
+      VersioningConfiguration:
+        Status: Enabled
+  SourceBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SourceBucket
+      PolicyDocument:
+        Id: KMSSourceBucketPolicy
+        Version: '2012-10-17'
+        Statement:
+        - Sid: S3GetPutAccess
+          Action:
+            - 's3:Get*'
+            - 's3:Put*'
+          Effect: Allow
+          Resource:
+            - !Join ["", ['arn:aws:s3:::', !Ref SourceBucket ] ]
+            - !Join ["", ['arn:aws:s3:::', !Ref SourceBucket, '/*' ] ]
+          Principal:
+            AWS:
+              - !Sub ${AWS::AccountId}
+          Condition:
+            ArnLike:
+              aws:PrincipalArn: 
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}'              
