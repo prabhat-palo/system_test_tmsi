@@ -13,3 +13,11 @@ resource "aws_s3_bucket" "log_bucket" {
     Demo = "log-delivery-write"
   }
 }
+
+resource "aws_s3_bucket_versioning" "log_bucket" {
+  bucket = aws_s3_bucket.log_bucket.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
